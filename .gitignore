@@ -1,0 +1,13 @@
+.cproject_org
+.project_org
+*.launch
+.settings
+Debug
+Release
+*.log
+*.bin
+*.sfb
+*.sfbp
+*.hex
+# Include the Cipher key
+!Cipher_Key_AES_CBC.bin

@@ -1,0 +1,3 @@
+[submodule "Bootloader"]
+	path = Bootloader
+	url = https://github.com/firmwaremodules/stm32-secure-patching-bootloader
