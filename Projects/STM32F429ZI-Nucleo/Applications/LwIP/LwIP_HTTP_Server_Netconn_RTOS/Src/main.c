@@ -35,6 +35,8 @@
 /* Private variables ---------------------------------------------------------*/
 struct netif gnetif; /* network interface structure */
 
+static UART_HandleTypeDef           UartHandle; /*!< Uart Handler*/
+
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static void StartThread(void const * argument);
@@ -63,6 +65,10 @@ int main(void)
   
   /* Initialize LCD and LEDs */
   BSP_Config();
+
+  printf("\nLwIP_HTTP_Server_Netconn_RTOS - NUCLEO-F429ZI\n");
+
+  printf("Built FW_UPDATE_VERSION=%d\n", FW_UPDATE_VERSION);
 
   /* Init thread */
 #if defined(__GNUC__)
@@ -138,6 +144,16 @@ static void BSP_Config(void)
   BSP_LED_Init(LED2);
 
 #endif /* USE_LCD */
+
+  UartHandle.Instance = COM_UART;
+  UartHandle.Init.BaudRate = 115200U;
+  UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
+  UartHandle.Init.StopBits = UART_STOPBITS_1;
+  UartHandle.Init.Parity = UART_PARITY_NONE;
+  UartHandle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  UartHandle.Init.Mode = UART_MODE_RX | UART_MODE_TX;
+
+  HAL_UART_Init(&UartHandle);
 }
 
 /**
@@ -248,6 +264,84 @@ static void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief  UART MSP Init.
+  * @param  huart: UART handler pointer.
+  * @retval None.
+  */
+void HAL_UART_MspInit(UART_HandleTypeDef* huart)
+{
+    GPIO_InitTypeDef GPIO_InitStruct;
+    if (huart->Instance == COM_UART)
+    {
+        /* Peripheral Clock Enable */
+        COM_UART_CLK_ENABLE();
+
+        /* GPIO Ports Clock Enable */
+        COM_UART_TX_GPIO_CLK_ENABLE();
+        COM_UART_RX_GPIO_CLK_ENABLE();
+
+        /*Configure GPIO pins : COM_UART_TX_Pin  */
+        GPIO_InitStruct.Pin = COM_UART_TX_PIN;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = COM_UART_TX_AF;
+        HAL_GPIO_Init(COM_UART_TX_GPIO_PORT, &GPIO_InitStruct);
+
+        /*Configure GPIO pins : COM_UART_RX_Pin  */
+        GPIO_InitStruct.Pin = COM_UART_RX_PIN;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = COM_UART_RX_AF;
+        HAL_GPIO_Init(COM_UART_RX_GPIO_PORT, &GPIO_InitStruct);
+    }
+}
+
+#if defined(__ICCARM__)
+#error not supported
+#elif defined(__CC_ARM)
+#error not supported
+#elif defined(__GNUC__)
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#define WRITE_PROTOTYPE int _write(int file, char* ptr, int len)
+#endif
+
+WRITE_PROTOTYPE
+{
+    HAL_UART_Transmit(&UartHandle, (uint8_t*)ptr, len, 0xFFFF);
+    return len;
+}
+
+/**
+  * @brief  Retargets the C library printf function to the USART.
+  * @param  None
+  * @retval ch
+  */
+PUTCHAR_PROTOTYPE
+{
+    /* Place your implementation of fputc here */
+    /* e.g. write a character to the USART and Loop until the end of transmission */
+    HAL_UART_Transmit(&UartHandle, (uint8_t*)&ch, 1U, 0xFFFFU);
+
+    return ch;
+}
+
+void print_buf(uint8_t* buf, int len)
+{
+    for (int i = 0; i < len; i++) {
+        uint8_t c = buf[i];
+        if (c == 0) {
+            char b[] = { 'n','u','l' };
+            HAL_UART_Transmit(&UartHandle, (uint8_t*) & b, sizeof(b), 100);
+        } else {           
+            HAL_UART_Transmit(&UartHandle, &c, 1, 100);
+        }
+    }
+    uint8_t n = '\n';
+    HAL_UART_Transmit(&UartHandle, &n, 1, 100);
+}
 
 #ifdef  USE_FULL_ASSERT
 /**

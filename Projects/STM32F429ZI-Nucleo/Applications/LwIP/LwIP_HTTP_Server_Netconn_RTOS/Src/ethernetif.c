@@ -40,7 +40,7 @@
 
 #define ETH_DMA_TRANSMIT_TIMEOUT                (20U)
 
-#define ETH_RX_BUFFER_SIZE            1000    /* Packets of this app's primary service protocol are smaller
+#define ETH_RX_BUFFER_SIZE            1536    /* Packets of this app's primary service protocol are smaller
                                                * than this. Typical size is 1536. */
 #define ETH_RX_BUFFER_CNT           10     /* This app buffers receive packets of its primary service
                                                * protocol for processing later. */

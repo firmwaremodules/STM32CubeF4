@@ -54,6 +54,7 @@ a lot of data that needs to be copied, this should be set high. */
    timeouts. */
 #define MEMP_NUM_SYS_TIMEOUT    10
 
+#define MEMP_OVERFLOW_CHECK     1
 
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
@@ -196,9 +197,8 @@ The STM32F4xx allows computing and verifying the IP, UDP, TCP and ICMP checksums
 #define DEFAULT_UDP_RECVMBOX_SIZE       6
 #define DEFAULT_TCP_RECVMBOX_SIZE       6
 #define DEFAULT_ACCEPTMBOX_SIZE         6
-#define DEFAULT_THREAD_STACKSIZE        500
+#define DEFAULT_THREAD_STACKSIZE        1024
 #define TCPIP_THREAD_PRIO               osPriorityHigh
-
 
 
 #endif /* __LWIPOPTS_H__ */

@@ -57,6 +57,9 @@ void ethernet_link_status_updated(struct netif *netif)
 #else
     BSP_LED_On(LED1);
     BSP_LED_Off(LED2);
+    uint8_t iptxt[20];
+    sprintf((char*)iptxt, "%s", ip4addr_ntoa(netif_ip4_addr(netif)));
+    printf("Static IP address: %s\n", iptxt);
 #endif /* LWIP_DHCP */
   }
   else
@@ -67,6 +70,7 @@ void ethernet_link_status_updated(struct netif *netif)
 #elif defined(USE_LCD)
     LCD_UsrLog ("The network cable is not connected \n");
 #else
+    printf("The network cable is not connected \n");
     BSP_LED_Off(LED1);
     BSP_LED_On(LED2);
 #endif /* LWIP_DHCP */
@@ -86,9 +90,7 @@ void DHCP_Thread(void const * argument)
   ip_addr_t netmask;
   ip_addr_t gw;
   struct dhcp *dhcp;
-#ifdef USE_LCD
   uint8_t iptxt[20];
-#endif
 
   for (;;)
   {
@@ -105,6 +107,7 @@ void DHCP_Thread(void const * argument)
 #else
         BSP_LED_Off(LED1);
         BSP_LED_Off(LED2);
+        printf("  State: Looking for DHCP server ...\n");
 #endif
         dhcp_start(netif);
       }
@@ -119,6 +122,8 @@ void DHCP_Thread(void const * argument)
           sprintf((char *)iptxt, "%s", ip4addr_ntoa(netif_ip4_addr(netif)));
           LCD_UsrLog ("IP address assigned by a DHCP server: %s\n", iptxt);
 #else
+          sprintf((char*)iptxt, "%s", ip4addr_ntoa(netif_ip4_addr(netif)));
+          printf("IP address assigned by a DHCP server: %s\n", iptxt);
           BSP_LED_On(LED1);
           BSP_LED_Off(LED2);
 #endif
@@ -143,6 +148,9 @@ void DHCP_Thread(void const * argument)
             LCD_UsrLog ("DHCP Timeout !! \n");
             LCD_UsrLog ("Static IP address: %s\n", iptxt);
 #else
+            sprintf((char*)iptxt, "%s", ip4addr_ntoa(netif_ip4_addr(netif)));
+            printf("DHCP Timeout !! \n");
+            printf("Static IP address: %s\n", iptxt);
             BSP_LED_On(LED1);
             BSP_LED_Off(LED2);
 #endif
@@ -156,6 +164,7 @@ void DHCP_Thread(void const * argument)
 #ifdef USE_LCD
       LCD_UsrLog ("The network cable is not connected \n");
 #else
+      printf("The network cable is not connected \n");
       BSP_LED_Off(LED1);
       BSP_LED_On(LED2);
 #endif

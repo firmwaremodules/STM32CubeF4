@@ -28,6 +28,28 @@
 **
 *****************************************************************************
 */
+/*
+ * Copyright (c) 2021-2022 Firmware Modules Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files(the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions :
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ * OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 
 /* Entry Point */
 ENTRY(Reset_Handler)
@@ -38,12 +60,21 @@ _estack = 0x20030000;    /* end of RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
 _Min_Stack_Size = 0x460; /* required amount of stack */
 
+INCLUDE stm32-secure-patching-bootloader-linker-gcc_NUCLEO-F429ZI_v1.3.0.ld
+
+APPLI_region_intvec_start__  = STM32_SECURE_PATCHING_BOOTLOADER_SLOT0_START + VECTOR_SIZE;
+APPLI_region_ROM_start    = STM32_SECURE_PATCHING_BOOTLOADER_SLOT0_START  + VECTOR_SIZE + VECTOR_SIZE;
+APPLI_region_ROM_length   = STM32_SECURE_PATCHING_BOOTLOADER_SLOT0_END - APPLI_region_ROM_start + 1;
+APPLI_region_RAM_start    = STM32_SECURE_PATCHING_BOOTLOADER_RAM_START;
+APPLI_region_RAM_length    = 0x20030000 - APPLI_region_RAM_start;
+
 /* Specify the memory areas */
 MEMORY
 {
-RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 192K
+ISR_VECTOR (rx)   : ORIGIN = APPLI_region_intvec_start__, LENGTH = VECTOR_SIZE
+RAM (xrw)      : ORIGIN = APPLI_region_RAM_start, LENGTH = APPLI_region_RAM_length
 CCMRAM (rw)      : ORIGIN = 0x10000000, LENGTH = 64K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 2048K
+FLASH (rx)      : ORIGIN = APPLI_region_ROM_start, LENGTH = APPLI_region_ROM_length
 }
 
 /* Define output sections */
@@ -52,10 +83,13 @@ SECTIONS
   /* The startup code goes first into FLASH */
   .isr_vector :
   {
-    . = ALIGN(4);
+    . = ALIGN(8);
     KEEP(*(.isr_vector)) /* Startup code */
-    . = ALIGN(4);
-  } >FLASH
+    FILL(0);
+    . = ORIGIN(ISR_VECTOR) + LENGTH(ISR_VECTOR) - 1;
+    BYTE(0)
+    . = ALIGN(8);
+  } >ISR_VECTOR
 
   /* The program code and other data goes into FLASH */
   .text :
@@ -173,7 +207,13 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  
+    /* Extra ROM section (last one) to make sure the binary size is a multiple of the AES block size (16 bytes) */
+  .align16 :
+  {
+    . = . + 1;         /* _edata=. is aligned on 8 bytes so could be aligned on 16 bytes: add 1 byte gap */
+    . = ALIGN(16) - 1; /* increment the location counter until next 16 bytes aligned address (-1 byte)   */
+    BYTE(0);           /* allocate 1 byte (value is 0) to be a multiple of 16 bytes                      */
+  } > FLASH
 
   /* Remove information from the standard libraries */
   /DISCARD/ :
