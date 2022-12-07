@@ -21,7 +21,7 @@
 #include "httpserver-netconn.h"
 #include "cmsis_os.h"
 #include "stm32_secure_patching_bootloader_interface_v1.3.0.h"
-
+#include "stm32f4xx.h"
 #include <stdio.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -384,6 +384,26 @@ static const char* fwupdate_state_str(fwupdate_state_t state)
 
 }
 
+static const uint8_t fwupdate_success_html[] = {
+    /* HTTP header */
+    /* "HTTP/1.0 200 OK
+    " (17 bytes) */
+    0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30, 0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+    0x0a,
+    /* "Server: lwIP/1.3.1 (http://savannah.nongnu.org/projects/lwip)
+    " (63 bytes) */
+    0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x6c, 0x77, 0x49, 0x50, 0x2f, 0x31, 0x2e, 0x33,
+    0x2e, 0x31, 0x20, 0x28, 0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x73, 0x61, 0x76, 0x61, 0x6e,
+    0x6e, 0x61, 0x68, 0x2e, 0x6e, 0x6f, 0x6e, 0x67, 0x6e, 0x75, 0x2e, 0x6f, 0x72, 0x67, 0x2f, 0x70,
+    0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x2f, 0x6c, 0x77, 0x69, 0x70, 0x29, 0x0d, 0x0a,
+    /* "Content-type: text/html
+
+    " (27 bytes) */
+    0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x74, 0x79, 0x70, 0x65, 0x3a, 0x20, 0x74, 0x65,
+    0x78, 0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x0d, 0x0a,
+    /* To this, write out the string */
+};
+
 static const uint8_t fwupdate_error_html[] = {
     /* HTTP header */
     /* "HTTP/1.0 404 File not found
@@ -410,7 +430,11 @@ static void fwupdate_send_err(struct netconn* conn, const char* err_str)
     netconn_write(conn, (const unsigned char*)err_str, (size_t)strlen(err_str), NETCONN_NOCOPY);
 }
 
-
+static void fwupdate_send_success(struct netconn* conn, const char* str)
+{
+    netconn_write(conn, (const unsigned char*)fwupdate_success_html, (size_t)sizeof(fwupdate_success_html), NETCONN_NOCOPY);
+    netconn_write(conn, (const unsigned char*)str, (size_t)strlen(str), NETCONN_NOCOPY);
+}
 
 static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16_t buflen)
 {
@@ -500,13 +524,18 @@ static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16
             if (buf) {
                 buf += strlen(OCTET_STREAM_TAG);
                 int multipart_length = buf - buf_start;
+                /* Strictly speaking this computed file length is incorrect - it is a bit too large as it includes
+                the ending multipart boundary tag of few dozen chars. This doesn't impact the update process because the
+                patching engine manages byte counters internally. This is just for diagnostic purposes and sanity check.
+                */
                 fwupdate.file_length = fwupdate.content_length - multipart_length;
                 printf("@ fwupdate content len=%d multipart len=%d file len=%d\n", 
                     fwupdate.content_length, multipart_length, fwupdate.file_length);
                 /* Now can init the update */
                 SE_PATCH_StartInfo info = {
                     .type = SE_PATCH_ImageType_APP, /* App type */
-                    .rebootDelay = SE_PATCH_RebootDelay_IMMEDIATE, /* Patch engine automatically reboots when update is complete */
+                    .rebootDelay = SE_PATCH_RebootDelay_NEXT, /* Allow us to to control when to reboot so we can send out a confirmation response to the web client. */
+                    //.rebootDelay = SE_PATCH_RebootDelay_IMMEDIATE, /* Patch engine automatically reboots when update is complete (cannot send a response to web client) */
                     .totalLength = fwupdate.file_length, /* Could be a patch or full image; either way used as a sanity check but not necessary to use here. */
                 };
                 SE_PATCH_Status se_patch_status;
@@ -637,13 +666,18 @@ static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16
                     /* now the thing is, if rebootdelay_IMMEDIATE was selected, the device will have rebooted
                     before we get here. 
                     */
-                    /* A better flow would be to have a response sent that said "firmware update success!" 
-                    with a countdown timer "rebooting in 5,4,3,2,1" then when device comes back up, the client browser
-                    should be polling the firmware update page to show that updated firmware is present by way of the
-                    updated version string.
-                    */
+                    if (se_patch_status.stage == SE_PATCH_Stage_VERIFIED) {
+                        fwupdate_send_success(conn, 
+                            "<html><head><meta http-equiv=\"refresh\" content=\"15; url='/firmwareupdate.html'\" /></head>"
+                            "<body>Firmware upload success! Rebooting and applying update in 5 seconds. Auto reload in 15.</body></html>");
+                        ret = FWUPDATE_STATUS_DONE;
+                    }
+                    else {
+                        fwupdate_send_err(conn, "Firmware upload failed for unknown reason! Maybe too small file or file truncated.\n");
+                        ret = FWUPDATE_STATUS_ERROR;
+                    }
+
                     /* if we have all file bytes, we are done whether it worked or not */
-                    ret = FWUPDATE_STATUS_DONE;
                     fwupdate.state = FWUPDATE_STATE_HEADER;
                 }
             }
@@ -671,6 +705,7 @@ static void http_server_serve(struct netconn *conn)
   struct fs_file file;
   /* Normal GET requests are expected to be closed by us after sending the response. */
   bool close = true;
+  bool reboot = false;
   
   printf("===== http_server_serve recv\n");
 
@@ -749,7 +784,12 @@ static void http_server_serve(struct netconn *conn)
                 else {
                     /* Some result, we should close the connection now. */
                     close = true;
-                }            
+
+                    if (ret == FWUPDATE_STATUS_DONE) {
+                        /* reboot after we close the connection. */
+                        reboot = true; 
+                    }
+                }
             }
             /* Process all data that may be present in the netbuf */
             printf("# netbuf_next = %d\n", netbuf_next(inbuf));
@@ -772,6 +812,13 @@ static void http_server_serve(struct netconn *conn)
   printf("===== http_server_serve close\n");
   /* Close the connection (server closes in HTTP) */
   netconn_close(conn);
+
+  if (reboot) {
+      printf("Rebooting in 5\n");
+      /* Wait 5 seconds. */
+      osDelay(5000);
+      NVIC_SystemReset();
+  }
 
 }
 
@@ -801,7 +848,7 @@ static void http_server_netconn_thread(void *arg)
   
       while(1) 
       {
-        /* accept any icoming connection */
+        /* accept any incoming connection */
         accept_err = netconn_accept(conn, &newconn);
         if(accept_err == ERR_OK)
         {
