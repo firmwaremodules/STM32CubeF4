@@ -6,6 +6,7 @@
 void http_server_netconn_init(void);
 void DynWebPage(struct netconn *conn);
 void FwUpdWebPage(struct netconn* conn);
-void print_buf(uint8_t* buf, int len);
+void print_buf(const uint8_t* buf, int len);
+void print_hex_buf(const uint8_t* buf, int len);
 
 #endif /* __HTTPSERVER_NETCONN_H__ */

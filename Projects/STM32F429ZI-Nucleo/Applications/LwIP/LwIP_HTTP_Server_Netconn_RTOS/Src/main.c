@@ -66,6 +66,12 @@ int main(void)
   /* Initialize LCD and LEDs */
   BSP_Config();
 
+  /* stm32-secure-patching-bootloader v1.3.0 errata:
+      [1] CRC hardware peripheral's power must be enabled by the user application
+          prior to calling SE_PATCH_Data() APIs.
+    */
+  __HAL_RCC_CRC_CLK_ENABLE();
+
   printf("\nLwIP_HTTP_Server_Netconn_RTOS - NUCLEO-F429ZI\n");
 
   printf("Built FW_UPDATE_VERSION=%d\n", FW_UPDATE_VERSION);
@@ -328,7 +334,7 @@ PUTCHAR_PROTOTYPE
     return ch;
 }
 
-void print_buf(uint8_t* buf, int len)
+void print_buf(const uint8_t* buf, int len)
 {
     for (int i = 0; i < len; i++) {
         uint8_t c = buf[i];
@@ -341,6 +347,18 @@ void print_buf(uint8_t* buf, int len)
     }
     uint8_t n = '\n';
     HAL_UART_Transmit(&UartHandle, &n, 1, 100);
+}
+
+void print_hex_buf(const uint8_t* buf, int len)
+{
+    for (int i = 0; i < len; i++) {
+        uint8_t c = buf[i];
+        printf("%02X ", c);
+        if (((i + 1) % 16) == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
 }
 
 #ifdef  USE_FULL_ASSERT

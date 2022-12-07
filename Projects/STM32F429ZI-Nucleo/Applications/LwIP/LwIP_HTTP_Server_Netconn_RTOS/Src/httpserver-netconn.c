@@ -293,6 +293,10 @@ typedef struct {
     int file_length;
     int accum_length;
 
+    /* Data stream accumulation buffer to meet 8-byte size-alignment constraint with v1.3.0 .sfb file update */
+    uint8_t accum_buf[8];
+    uint8_t accum_buf_len;
+
 } fwupdate_t;
 
 static fwupdate_t fwupdate;
@@ -406,6 +410,8 @@ static void fwupdate_send_err(struct netconn* conn, const char* err_str)
     netconn_write(conn, (const unsigned char*)err_str, (size_t)strlen(err_str), NETCONN_NOCOPY);
 }
 
+
+
 static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16_t buflen)
 {
     /* So how the multipart file upload appears to work (from Chrome):
@@ -512,6 +518,7 @@ static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16
                     /* Now need to consume rest of buffer as the file */
                     fwupdate.state = FWUPDATE_STATE_OCTET_STREAM;
                     fwupdate.accum_length = 0;
+                    fwupdate.accum_buf_len = 0;
                     ret = FWUPDATE_STATUS_INPROGRESS;
                 }
                 else {
@@ -526,21 +533,97 @@ static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16
             /* All of "buf" until "buf_end"-1 is considered file data at this point */
             /* It is safe to feed this buffer right into the patching engine.
             It could block here while flash is being erased & written if we have enough and correct bytes */
+
+            /* stm32-secure-patching-bootloader v1.3.0 errata:
+                [2] SE_PATCH_Data API will fail if presented with a full-image update file (.sfb) data buffer length
+                    that is not a multiple of the platform's flash write size: typically 8 bytes (doubleword).
+                    Workaround is to ensure that the API is called with an 8-byte-multiple length buffer. 
+                    Note: this is not necessary for .sfbp (patch) files, but having it in place won't affect .sfbp updates.
+
+                    For ethernet we have no control over how many bytes may be sent so we implement a buffer
+                    scheme to accumulate bytes until we meet the criteria for each SE_PATCH_Data() call.
+             */
+
+            /* total bytes we have in this current buffer - these all have to be processed with SE_PATCH_Data()
+               or stored in the accum_buf */
             int len = buf_end - buf;
             printf("@ fwupdate len=%d\n", len);
+
+            const uint8_t* input_buf; /* pointer to data we will consume */
+            int input_buf_len = 0; /* number of bytes to consume from this input buffer pointer */
+            int offset = 0; /* offset into the original buffer */
+
+            ret = FWUPDATE_STATUS_INPROGRESS;
+
             SE_PATCH_Status se_patch_status;
             SE_PATCH_InitStatus(&se_patch_status);
-            if (len > 0) {
-                SE_ErrorStatus se_status = SE_PATCH_Data(&se_patch_status, (const uint8_t*)buf, len);
-                printf("@ fwupdate DATA %d\n", se_status);
-                fwupdate_PrintStatus(&se_patch_status);
-                if (se_status == SE_ERROR) {
-                    fwupdate_send_err(conn, fwupdate_GetStatusCodeString(se_patch_status.code));
-                    ret = FWUPDATE_STATUS_ERROR;
-                    fwupdate.state = FWUPDATE_STATE_HEADER;
+
+            /* One way or another we MUST consume all bytes in the received packet (buf).
+            * Bytes that aren't a multiple of the accumulation buffer size are stored
+            * in the accumulation buffer until next packet.
+            */
+            while (len > 0) {
+
+                /* ----------------------------------------------------------------- */
+                input_buf = 0;
+
+                if (fwupdate.accum_buf_len > 0 ||
+                    len < sizeof(fwupdate.accum_buf)) {
+                    /* We have existing bytes in the buffer or and /or too few bytes to process.
+                      Store them in our internal buffer.
+                     */
+                    int avail = sizeof(fwupdate.accum_buf) - fwupdate.accum_buf_len;
+                    int copy = len > avail ? avail : len;
+                    memcpy(fwupdate.accum_buf + fwupdate.accum_buf_len, buf + offset, copy);
+                    fwupdate.accum_buf_len += copy;
+
+                    /* consumed these bytes into the front end buffer */
+                    len -= copy;
+                    offset += copy;
+                    
+                    printf("@   accum %d bytes\n", copy);
                 }
-                else {
-                    fwupdate.accum_length += len;
+
+                /* If the front end buffer is full, use it */
+                if (fwupdate.accum_buf_len == sizeof(fwupdate.accum_buf)) {
+                    printf("@   use accum_buf\n");
+                    /* We now have all required minimum bytes in the front end buffer.Process them */
+                    input_buf = fwupdate.accum_buf;
+                    fwupdate.accum_buf_len = 0;
+                    input_buf_len = sizeof(fwupdate.accum_buf);
+                }
+                // otherwise use a block directly from original buffer if available
+                else if (len >= sizeof(fwupdate.accum_buf)) {
+                    // No waiting bytes and we have enough to process another block(s)
+                    input_buf = (const uint8_t*)buf + offset;
+                    printf("@   use buf at %d\n", offset);
+
+                    /* We will try to consume all bytes that are a multiple of the accumulation buffer. 
+                    The rest will get consumed into the accumulation buffer and held for the next packet received. 
+                    */
+                    input_buf_len = (len / sizeof(fwupdate.accum_buf)) * sizeof(fwupdate.accum_buf);
+                    len -= input_buf_len;
+                    offset += input_buf_len;
+                }
+                /* ----------------------------------------------------------------- */
+
+                /* Only if there is at least one accum_buf number of bytes available */
+                if (input_buf) {
+                   
+                    //print_hex_buf((const uint8_t*)input_buf, input_buf_len);
+
+                    SE_PATCH_InitStatus(&se_patch_status);
+                    SE_ErrorStatus se_status = SE_PATCH_Data(&se_patch_status, input_buf, input_buf_len);
+                    printf("@ fwupdate DATA len=%d status=%d\n", input_buf_len, se_status);
+                    fwupdate_PrintStatus(&se_patch_status);
+                    if (se_status == SE_ERROR) {
+                        fwupdate_send_err(conn, fwupdate_GetStatusCodeString(se_patch_status.code));
+                        ret = FWUPDATE_STATUS_ERROR;
+                        fwupdate.state = FWUPDATE_STATE_HEADER;
+                    }
+                    else {
+                        fwupdate.accum_length += len;
+                    }
                 }
             }
 
@@ -549,7 +632,7 @@ static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16
 
             if (ret == FWUPDATE_STATUS_INPROGRESS) {
                 if (fwupdate.accum_length >= fwupdate.file_length
-                    || se_patch_status.completed)
+                    || se_patch_status.stage == SE_PATCH_Stage_VERIFIED)
                 {
                     /* now the thing is, if rebootdelay_IMMEDIATE was selected, the device will have rebooted
                     before we get here. 
@@ -562,11 +645,6 @@ static int fwupdate_multipart_state_machine(struct netconn* conn, char* buf, u16
                     /* if we have all file bytes, we are done whether it worked or not */
                     ret = FWUPDATE_STATUS_DONE;
                     fwupdate.state = FWUPDATE_STATE_HEADER;
-                }
-                else {
-                    /* if having accumulated all the bytes yet have not finished the update, we
-                    have a problem.  Likely due to sending small amount of bytes less than the mininum
-                    required for the header (256). */
                 }
             }
 
