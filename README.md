@@ -12,9 +12,9 @@ or for already cloned repository without --recursive:
 
 * `git submodule update --init`
 
-| Board | Project | Notes |
-| --- | --- | 
-| [NUCLEO-F429ZI](https://github.com/firmwaremodules/stm32-secure-patching-bootloader/tree/main/Libs/NUCLEO-F429ZI)| [Applications/LwIP_HTTP_Server_Netconn_RTOS](https://github.com/firmwaremodules/STM32CubeF4/tree/master/Projects/STM32F429ZI-Nucleo/Applications/LwIP/LwIP_HTTP_Server_Netconn_RTOS) | Firmware update through ethernet and embedded web server |
+| Board | Project | Decription |
+| --- | --- | --- |
+| [NUCLEO-F429ZI](https://github.com/firmwaremodules/stm32-secure-patching-bootloader/tree/main/Libs/NUCLEO-F429ZI)| [Applications/LwIP_HTTP_Server_Netconn_RTOS](https://github.com/firmwaremodules/STM32CubeF4/tree/master/Projects/STM32F429ZI-Nucleo/Applications/LwIP/LwIP_HTTP_Server_Netconn_RTOS) | Firmware update through ethernet and embedded web server using multipart/form-data method. |
 
 Outputs are in
 
