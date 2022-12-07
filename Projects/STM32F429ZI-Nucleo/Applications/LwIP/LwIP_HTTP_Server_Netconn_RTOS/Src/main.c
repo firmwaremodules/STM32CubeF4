@@ -25,9 +25,11 @@
 #include "lwip/tcpip.h"
 #include "app_ethernet.h"
 #include "httpserver-netconn.h"
+#include "stm32_secure_patching_bootloader_interface_v1.3.0.h"
 #ifdef USE_LCD
 #include "lcd_log.h"
 #endif
+#include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -75,6 +77,22 @@ int main(void)
   printf("\nLwIP_HTTP_Server_Netconn_RTOS - NUCLEO-F429ZI\n");
 
   printf("Built FW_UPDATE_VERSION=%d\n", FW_UPDATE_VERSION);
+
+  /* Get the firmware version embedded in the active slot header using the
+ * Secure Engine services.
+ */
+  SE_StatusTypeDef se_Status = SE_KO;
+  SE_APP_ActiveFwInfo sl_FwInfo;
+  memset(&sl_FwInfo, 0xFF, sizeof(SE_APP_ActiveFwInfo));
+  SE_APP_GetActiveFwInfo(&se_Status, &sl_FwInfo);
+  printf("Firmware Version: %ld.%ld.%ld\n",
+      FW_VERSION_MAJOR(sl_FwInfo.ActiveFwVersion),
+      FW_VERSION_MINOR(sl_FwInfo.ActiveFwVersion),
+      FW_VERSION_PATCH(sl_FwInfo.ActiveFwVersion));
+  char bootver[32];
+  memset(bootver, 0, sizeof(bootver));
+  SE_APP_GetBootVer(&se_Status, bootver, sizeof(bootver));
+  printf("Bootloader Version: %s\n", bootver);
 
   /* Init thread */
 #if defined(__GNUC__)

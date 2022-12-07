@@ -19,6 +19,71 @@
   ******************************************************************************
    @endverbatim
 
+/*
+ * Copyright (c) 2022 Firmware Modules Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files(the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions :
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ * OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+Modifications and requirements to support demonstrating the https://github.com/firmwaremodules/stm32-secure-patching-bootloader
+in-application firmware update SE_PATCH APIs.
+
+- Enabled STLINK VCOM UART and bound to printf
+- Prints firmware and bootloader versions at application start (confirming access to bootloader secure engine)
+- Added HTML multipart/form-data file upload firmware update capability into the existing webserver.
+- Added new page "firmwareupdate.html" and link to the main page.
+- Added a tool 'htmlgen.js' to generate the firmwareupdate.html header content and main page content (only for further customization).
+
+
+Requirements:
+- Load the combined .bin file produced in Projects\Binary or the already existing test binary in bin\ dir:  e.g. BOOT_LwIP-HTTP-Server-Netconn-RTOS_STM32F429ZI_NUCLEO_144_v1.0.0.bin
+The <version> is fixed in the post-build command-line to v1.0.0 so it is easy to test firmware update by changing this 'to' as well as 'from' versions for patch testing.
+- Use STM32CubeProgrammer to the load the .bin file.
+- Use TeraTerm or similar tool to connect to STLINK COM port and observe output and diagnostic messages.
+- Power cycle board to start bootloader and application.
+
+Firmware update testing:
+- Use prebuilt-binaries in bin\ dir.
+1. Observe DHCP IP address that board received in terminal.
+2. Use Chrome or compatible web browser (only tested with Chrome) and type "http://<ip address>"
+3. Click on top-bar item "Firmware Update"
+4. Select "Choose File" and pick 
+   LwIP-HTTP-Server-Netconn-RTOS_STM32F429ZI_NUCLEO_144_v1.1.0.sfb (full image, 126 KB) or 
+   LwIP-HTTP-Server-Netconn-RTOS_STM32F429ZI_NUCLEO_144_v1.0.0_v1.1.0.sfbp (patch image, 320 bytes)
+   Either one will result in version v1.1.0 placed onto device.
+5. Click "upload" button.  
+6. Observe terminal for progress or wait a few seconds for "success" response page to be delivered to browser.
+
+- To build your own binaries:
+1. Open project in STM32CubeIDE 
+2. Build version v1.0.0 (out of box configuration in repository)
+4. Open project properties, go to settings->Build Steps->Post-build steps
+    Change Command: ... "v1.0.0" "v1.0.0" ...   -> "v1.1.0" "v1.0.0"   ( "to" and "from" versions)
+5. Apply and Close.
+6. Open main.h.  Change FW_UPDATE_VERSION to 2.
+7. Build project.
+8. You now have LwIP-HTTP-Server-Netconn-RTOS_STM32F429ZI_NUCLEO_144_v1.1.0.sfb and LwIP-HTTP-Server-Netconn-RTOS_STM32F429ZI_NUCLEO_144_v1.0.0_v1.1.0.sfbp.
+9. Follow update instructions above using web browser.
+
+Notes:
+* To repeat firmware update testing, remember to erase the SLOT1 header sector @ 0x08060000 before running with new v1.0.0 firmware, otherwise it will find "old" v1.1.0 and update to it.
+
 @par Application Description 
 
 This application guides STM32Cube HAL API users to run a http server application 

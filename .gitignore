@@ -9,5 +9,8 @@ Release
 *.sfb
 *.sfbp
 *.hex
+Binary/
+.vs
+out/
 # Include the Cipher key
 !Cipher_Key_AES_CBC.bin
