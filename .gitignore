@@ -14,3 +14,9 @@ Binary/
 out/
 # Include the Cipher key
 !Cipher_Key_AES_CBC.bin
+
+# TouchGFX libs may not be included in GitHub (according to ST)
+**/ST/touchgfx/
+# Audio-PDM libs may not be included in GitHub (according to ST)
+**/Addons/PDM/
+
