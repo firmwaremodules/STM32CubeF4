@@ -20,7 +20,7 @@
 #include "string.h"
 #include "httpserver-netconn.h"
 #include "cmsis_os.h"
-#include "stm32_secure_patching_bootloader_interface_v1.3.0.h"
+#include "stm32_secure_patching_bootloader_interface_v1.4.0.h"
 #include "stm32f4xx.h"
 #include <stdio.h>
 

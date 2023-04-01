@@ -15,7 +15,7 @@ or for already cloned repository without --recursive:
 | Board | Project | Decription |
 | --- | --- | --- |
 | [NUCLEO-F429ZI](https://github.com/firmwaremodules/stm32-secure-patching-bootloader/tree/main/Libs/NUCLEO-F429ZI)| [Applications/LwIP_HTTP_Server_Netconn_RTOS](https://github.com/firmwaremodules/STM32CubeF4/tree/master/Projects/STM32F429ZI-Nucleo/Applications/LwIP/LwIP_HTTP_Server_Netconn_RTOS) | Firmware update through ethernet and embedded web server using multipart/form-data method. |
-| [DISCO-F469I](https://github.com/firmwaremodules/stm32-secure-patching-bootloader/blob/v1.4-preview/Libs/DISCO-F469I/stm32-secure-patching-bootloader-README_DISCO-F469I_v1.4-preview1.txt) | [TouchGFX Demo](https://github.com/firmwaremodules/STM32CubeF4/tree/v1.4-preview/Projects/STM32469I-Discovery/Demonstrations/TouchGFX) | Bootloader integration with a real TouchGFX app
+| [DISCO-F469I](https://github.com/firmwaremodules/stm32-secure-patching-bootloader/tree/main/Libs/DISCO-F469I) | [TouchGFX Demo](https://github.com/firmwaremodules/STM32CubeF4/tree/master/Projects/STM32469I-Discovery/Demonstrations/TouchGFX) | Bootloader integration with a real TouchGFX app
 
 
 Outputs are in

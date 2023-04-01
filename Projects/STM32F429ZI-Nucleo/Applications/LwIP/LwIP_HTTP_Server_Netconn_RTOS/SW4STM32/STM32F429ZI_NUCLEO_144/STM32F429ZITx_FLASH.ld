@@ -60,13 +60,13 @@ _estack = 0x20030000;    /* end of RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
 _Min_Stack_Size = 0x460; /* required amount of stack */
 
-INCLUDE stm32-secure-patching-bootloader-linker-gcc_NUCLEO-F429ZI_v1.3.0.ld
+INCLUDE stm32-secure-patching-bootloader-linker-gcc_NUCLEO-F429ZI_v1.4.0.ld
 
 APPLI_region_intvec_start__  = STM32_SECURE_PATCHING_BOOTLOADER_SLOT0_START + VECTOR_SIZE;
 APPLI_region_ROM_start    = STM32_SECURE_PATCHING_BOOTLOADER_SLOT0_START  + VECTOR_SIZE + VECTOR_SIZE;
 APPLI_region_ROM_length   = STM32_SECURE_PATCHING_BOOTLOADER_SLOT0_END - APPLI_region_ROM_start + 1;
 APPLI_region_RAM_start    = STM32_SECURE_PATCHING_BOOTLOADER_RAM_START;
-APPLI_region_RAM_length    = 0x20030000 - APPLI_region_RAM_start;
+APPLI_region_RAM_length    = _estack - APPLI_region_RAM_start;
 
 /* Specify the memory areas */
 MEMORY

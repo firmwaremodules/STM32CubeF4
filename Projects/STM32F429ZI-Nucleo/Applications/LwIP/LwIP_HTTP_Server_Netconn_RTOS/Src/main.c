@@ -25,7 +25,7 @@
 #include "lwip/tcpip.h"
 #include "app_ethernet.h"
 #include "httpserver-netconn.h"
-#include "stm32_secure_patching_bootloader_interface_v1.3.0.h"
+#include "stm32_secure_patching_bootloader_interface_v1.4.0.h"
 #ifdef USE_LCD
 #include "lcd_log.h"
 #endif
