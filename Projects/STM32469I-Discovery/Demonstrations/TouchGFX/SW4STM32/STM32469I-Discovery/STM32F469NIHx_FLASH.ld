@@ -32,7 +32,7 @@
 /* Entry Point */
 ENTRY(Reset_Handler)
 
-INCLUDE stm32-secure-patching-bootloader-linker-gcc_DISCO-F469I_v1.4-preview1.ld
+INCLUDE stm32-secure-patching-bootloader-linker-gcc_DISCO-F469I_v1.4.0.ld
 
 /* Highest address of the user mode stack */
 _estack = STM32_SECURE_PATCHING_BOOTLOADER_RAM_TOP;    /* end of RAM */
