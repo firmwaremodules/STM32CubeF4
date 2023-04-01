@@ -138,6 +138,13 @@ const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 /** @addtogroup STM32F4xx_System_Private_Functions
   * @{
   */
+#if defined(__ICCARM__)||defined(__GNUC__)
+  extern uint32_t APPLI_region_intvec_start__;
+#define INTVECT_START ((uint32_t)& APPLI_region_intvec_start__)
+#elif defined(__CC_ARM)
+  extern uint32_t Image$$vector_start$$Base;
+#define INTVECT_START ((uint32_t)& Image$$vector_start$$Base)
+#endif
 
 /**
   * @brief  Setup the microcontroller system
@@ -179,7 +186,7 @@ void SystemInit(void)
 #ifdef VECT_TAB_SRAM
   SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+  SCB->VTOR = INTVECT_START; /* Vector Table Relocation in Internal FLASH */
 #endif
 }
 

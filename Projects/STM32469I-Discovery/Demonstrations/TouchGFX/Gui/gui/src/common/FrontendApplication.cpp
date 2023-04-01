@@ -113,8 +113,10 @@ void FrontendApplication::gotoProductPresenterScreenImpl()
 
 void FrontendApplication::gotoGame2DScreen()
 {
+#ifndef TOUCHGFX_DISABLE_GAME2D
     transitionCallback = Callback< FrontendApplication >(this, &FrontendApplication::gotoGame2DScreenImpl);
     pendingScreenTransitionCallback = &transitionCallback;
+#endif
 }
 
 void FrontendApplication::gotoGame2DScreenImpl()

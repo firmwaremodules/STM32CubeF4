@@ -68,6 +68,7 @@ extern const unsigned char _flag_nld_active[];
 extern const unsigned char _flag_nld_inactive[]; 
 extern const unsigned char _flag_ukr_active[]; 
 extern const unsigned char _flag_ukr_inactive[]; 
+#ifndef TOUCHGFX_DISABLE_GAME2D
 extern const unsigned char _game2d_TreeTops[]; 
 extern const unsigned char _game2d_background[]; 
 extern const unsigned char _game2d_fly_button[]; 
@@ -81,6 +82,7 @@ extern const unsigned char _game2d_st_button_on[];
 extern const unsigned char _game2d_st_button_pressed[]; 
 extern const unsigned char _game2d_topLeaves[]; 
 extern const unsigned char _game_2d_frame_background[]; 
+#endif
 extern const unsigned char _gauge_background[]; 
 extern const unsigned char _gauge_needle_pin[]; 
 extern const unsigned char _graph_background_bottom[]; 
@@ -218,6 +220,22 @@ const touchgfx::Bitmap::BitmapData bitmap_database[] = {
     { _flag_nld_inactive, 0, 50, 31, 0, 0, 50, 31, touchgfx::Bitmap::RGB565 },
     { _flag_ukr_active, 0, 58, 39, 4, 4, 50, 31, touchgfx::Bitmap::ARGB8888 },
     { _flag_ukr_inactive, 0, 50, 31, 0, 0, 50, 31, touchgfx::Bitmap::RGB565 },
+#ifdef TOUCHGFX_DISABLE_GAME2D
+    /* Replace unused images with something small */
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+    { _sphere1, 0, 16, 16, 3, 3, 10, 10, touchgfx::Bitmap::ARGB8888 },
+#else
     { _game2d_TreeTops, 0, 534, 72, 0, 0, 534, 19, touchgfx::Bitmap::ARGB8888 },
     { _game2d_background, 0, 614, 240, 0, 0, 614, 240, touchgfx::Bitmap::RGB565 },
     { _game2d_fly_button, 0, 70, 70, 0, 0, 70, 70, touchgfx::Bitmap::RGB565 },
@@ -231,6 +249,7 @@ const touchgfx::Bitmap::BitmapData bitmap_database[] = {
     { _game2d_st_button_pressed, 0, 70, 70, 14, 14, 42, 42, touchgfx::Bitmap::ARGB8888 },
     { _game2d_topLeaves, 0, 630, 53, 0, 0, 630, 22, touchgfx::Bitmap::ARGB8888 },
     { _game_2d_frame_background, 0, 800, 480, 0, 0, 800, 480, touchgfx::Bitmap::RGB565 },
+#endif
     { _gauge_background, 0, 359, 359, 0, 0, 359, 359, touchgfx::Bitmap::RGB565 },
     { _gauge_needle_pin, 0, 24, 24, 5, 5, 14, 14, touchgfx::Bitmap::ARGB8888 },
     { _graph_background_bottom, 0, 800, 162, 0, 0, 800, 162, touchgfx::Bitmap::RGB565 },

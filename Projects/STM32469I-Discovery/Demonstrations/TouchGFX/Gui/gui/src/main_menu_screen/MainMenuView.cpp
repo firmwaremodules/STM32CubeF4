@@ -60,7 +60,9 @@ void MainMenuView::gotoSelectedDemoScreen()
         static_cast<FrontendApplication*>(Application::getInstance())->gotoProductPresenterScreen();
         break;
     case MainMenuView::GAME2D:
+#ifndef TOUCHGFX_DISABLE_GAME2D
         static_cast<FrontendApplication*>(Application::getInstance())->gotoGame2DScreen();
+#endif
         break;
     case MainMenuView::CUSTOM_CONTROLS:
         static_cast<FrontendApplication*>(Application::getInstance())->gotoCustomControlsScreen();
